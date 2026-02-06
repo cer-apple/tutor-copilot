@@ -1,8 +1,14 @@
 from pathlib import Path
 import os
-from openai import OpenAI
+from openai import AzureOpenAI
 
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+client = AzureOpenAI(
+    api_key=os.environ["AZURE_OPENAI_API_KEY"],
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
+)
+
+DEPLOYMENT_NAME = os.environ["AZURE_OPENAI_DEPLOYMENT"]
 
 INPUT_FILE = "input_notes/lesson_2026_02_05.md"
 OUTPUT_FILE = "output_summaries/quiz_2026_02_05.md"
@@ -13,20 +19,22 @@ prompt = f"""
 あなたは日本語教師です。
 以下のレッスンメモを元に小テストを作ってください。
 
-選択問題5問
-穴埋め問題5問
-単語問題5問
-解答と解説も含める
+出力形式は必ず固定：
+- 選択問題 5問
+- 穴埋め問題 5問
+- 単語翻訳問題 5問
+- 各問に「答え」と「1〜2行の解説」を付ける
 
+レッスンメモ:
 {lesson_text}
 """
 
 response = client.chat.completions.create(
-    model="gpt-4.1",
+    model=DEPLOYMENT_NAME,
     messages=[{"role": "user", "content": prompt}],
 )
 
 quiz = response.choices[0].message.content
 Path(OUTPUT_FILE).write_text(quiz, encoding="utf-8")
 
-print("Quiz generated.")
+print("Quiz generated:", OUTPUT_FILE)
